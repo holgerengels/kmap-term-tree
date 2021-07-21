@@ -3,18 +3,18 @@
   "tags": [
     {
       "name": "kmap-term-tree",
-      "description": "A component with a title and an action counter",
+      "description": "Render a Tree from a math expression",
       "properties": [
         {
-          "name": "title",
+          "name": "term",
           "type": "String",
-          "description": "The title of your component",
-          "default": "Hey there"
+          "description": "The mathematical term",
+          "default": ""
         },
         {
-          "name": "counter",
+          "name": "tension",
           "type": "Number",
-          "description": "An action counter",
+          "description": "Curviness od edges",
           "default": 0
         }
       ],
@@ -23,7 +23,17 @@
       "cssProperties": [
         {
           "name": "--kmap-term-tree-text-color",
-          "description": "Main Text Color",
+          "description": "Text Color",
+          "type": "Color"
+        },
+        {
+          "name": "--kmap-term-tree-border-color",
+          "description": "Node Border Color",
+          "type": "Color"
+        },
+        {
+          "name": "--kmap-term-tree-edge-color",
+          "description": "Edge Color",
           "type": "Color"
         }
       ]

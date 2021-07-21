@@ -1,7 +1,8 @@
 {
+  "type": "module",
   "name": "kmap-term-tree",
-  "version": "0.0.0",
-  "description": "Webcomponent kmap-term-tree following open-wc recommendations",
+  "version": "0.9.0",
+  "description": "Renders a tree from a mathematical term",
   "author": "kmap-term-tree",
   "license": "MIT",
   "main": "dist/index.js",
