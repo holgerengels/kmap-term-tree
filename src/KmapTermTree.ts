@@ -1,4 +1,4 @@
-import {css, html, LitElement, property, PropertyValues, query, state, svg} from 'lit-element';
+import {css, html, LitElement, property, PropertyValues, query, internalProperty, svg} from 'lit-element';
 import {Parser, TermNode} from "./parser";
 import {Token} from "./tokenizer";
 import {ifDefined} from "lit-html/directives/if-defined.js";
@@ -67,12 +67,12 @@ export class KmapTermTree extends LitElement {
   @property({ type: String }) term?: string;
   @property({type: Number}) tension: number = 0;
 
-  @state() tokens?: Token[];
-  @state() nodes?: TermNode[];
-  @state() termNode?: TermNode;
-  @state() depths?: {[key: string]: number};
+  @internalProperty() tokens?: Token[];
+  @internalProperty() nodes?: TermNode[];
+  @internalProperty() termNode?: TermNode;
+  @internalProperty() depths?: {[key: string]: number};
 
-  @state() connections?: Connection[];
+  @internalProperty() connections?: Connection[];
 
   @query("kmap-term-tree-edges") edgesElement?: KmapTermTreeEdge;
 
