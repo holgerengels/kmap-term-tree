@@ -1,6 +1,6 @@
 import {css, html, LitElement, property, PropertyValues, query, internalProperty, svg} from 'lit-element';
-import {Parser, TermNode} from "./parser";
-import {Token} from "./tokenizer";
+import {Parser, TermNode} from "./parser.js";
+import {Token} from "./tokenizer.js";
 import {ifDefined} from "lit-html/directives/if-defined.js";
 
 interface Connection {
@@ -83,11 +83,11 @@ export class KmapTermTree extends LitElement {
         this.termNode = this.parser.parse(this.tokens);
 
         let map: {[key: string]: number} = {};
-        let max = this.calcDepths(this.termNode, map);
+        //let max = this.calcDepths(this.termNode, map);
         console.log(map);
 
         let connections: Connection[] = [];
-        this.termNode.breadthFirst((n, d) => {
+        this.termNode.breadthFirst((n) => {
           if (n.leftChildNode !== undefined)
             connections.push({from: n.token.id, to: n.leftChildNode.token.id})
           if (n.rightChildNode !== undefined)
@@ -101,6 +101,7 @@ export class KmapTermTree extends LitElement {
     super.update(_changedProperties);
   }
 
+  /*
   private calcDepths(node: TermNode, map: { [p: string]: number }): number {
     let depth = 0;
     if (node.leftChildNode)
@@ -110,6 +111,7 @@ export class KmapTermTree extends LitElement {
     map[node.token.id] = depth;
     return depth;
   }
+   */
 
   render() {
     return html`
@@ -118,14 +120,14 @@ export class KmapTermTree extends LitElement {
       ` : ''}
       ${!this.tokens ? '' : html`
         <div class="tokens">
-          ${this.tokens.map((t, i) => html`
+          ${this.tokens.map((t) => html`
             <div class="token" id="${t.id}">${this._prettify(t.value)}</div>
           `)}
         </div>
       ` }
       ${this.tokens && this.depths ? html`
         <div class="nodes">
-          ${this.tokens.map((t, i) => html`
+          ${this.tokens.map((t) => html`
             <div class="node" id="n${t.id}" depth="${ifDefined(this.depths ? this.depths[t.id]: undefined)}">${this._prettify(t.value)}</div>
           `)}
         </div>

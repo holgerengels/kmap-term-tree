@@ -1,13 +1,23 @@
 {
   "type": "module",
   "name": "kmap-term-tree",
-  "version": "0.9.2",
+  "version": "0.9.4",
   "description": "Renders a tree from a mathematical term",
   "author": "Holger Engels",
   "repository": {
     "type": "git",
     "url": "https://github.com/holgerengels/kmap-term-tree.git"
   },
+  "homepage": "https://kmap.eu",
+  "keywords": [
+    "kmap",
+    "knowlede card",
+    "school",
+    "math",
+    "term",
+    "ast"
+  ],
+  "files": ["dist"],
   "license": "MIT",
   "main": "dist/index.js",
   "module": "dist/index.js",
