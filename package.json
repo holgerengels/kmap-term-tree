@@ -1,7 +1,6 @@
 {
-  "type": "module",
   "name": "kmap-term-tree",
-  "version": "0.9.4",
+  "version": "0.9.6",
   "description": "Renders a tree from a mathematical term",
   "author": "Holger Engels",
   "repository": {
@@ -17,7 +16,6 @@
     "term",
     "ast"
   ],
-  "files": ["dist"],
   "license": "MIT",
   "main": "dist/index.js",
   "module": "dist/index.js",

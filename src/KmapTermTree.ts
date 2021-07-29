@@ -83,8 +83,8 @@ export class KmapTermTree extends LitElement {
         this.termNode = this.parser.parse(this.tokens);
 
         let map: {[key: string]: number} = {};
-        //let max = this.calcDepths(this.termNode, map);
-        console.log(map);
+        let max = this.calcDepths(this.termNode, map);
+        console.log(max);
 
         let connections: Connection[] = [];
         this.termNode.breadthFirst((n) => {
@@ -101,7 +101,6 @@ export class KmapTermTree extends LitElement {
     super.update(_changedProperties);
   }
 
-  /*
   private calcDepths(node: TermNode, map: { [p: string]: number }): number {
     let depth = 0;
     if (node.leftChildNode)
@@ -111,7 +110,6 @@ export class KmapTermTree extends LitElement {
     map[node.token.id] = depth;
     return depth;
   }
-   */
 
   render() {
     return html`
