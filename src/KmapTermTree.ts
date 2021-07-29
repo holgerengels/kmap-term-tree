@@ -71,6 +71,7 @@ export class KmapTermTree extends LitElement {
   @internalProperty() nodes?: TermNode[];
   @internalProperty() termNode?: TermNode;
   @internalProperty() depths?: {[key: string]: number};
+  @internalProperty() calculatedHeight?: string;
 
   @internalProperty() connections?: Connection[];
 
@@ -95,7 +96,7 @@ export class KmapTermTree extends LitElement {
         });
         this.depths = map;
         this.connections = connections;
-        this.style.height = "calc(var(--kmap-term-tree-vertical-distance, 2em) * 4)";
+        this.calculatedHeight = "calc(var(--kmap-term-tree-vertical-distance, 1.5em) * " + (max+1) + ")";
       }
     }
     super.update(_changedProperties);
@@ -112,6 +113,9 @@ export class KmapTermTree extends LitElement {
   }
 
   render() {
+    if (this.calculatedHeight)
+      this.style.height = this.calculatedHeight;
+
     return html`
       ${this.connections ? html`
         <kmap-term-tree-edges .tension="${this.tension}"></kmap-term-tree-edges>
