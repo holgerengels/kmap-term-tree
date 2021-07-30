@@ -71,11 +71,12 @@ export class KmapTermTree extends LitElement {
   @internalProperty() nodes?: TermNode[];
   @internalProperty() termNode?: TermNode;
   @internalProperty() depths?: {[key: string]: number};
-  @internalProperty() calculatedHeight?: string;
+  @internalProperty() maxDepths?: number;
 
   @internalProperty() connections?: Connection[];
 
   @query("kmap-term-tree-edges") edgesElement?: KmapTermTreeEdge;
+  @query("#tokens") tokensElement?: HTMLDivElement;
 
   protected update(_changedProperties: PropertyValues) {
     if (_changedProperties.has("term")) {
@@ -84,8 +85,8 @@ export class KmapTermTree extends LitElement {
         this.termNode = this.parser.parse(this.tokens);
 
         let map: {[key: string]: number} = {};
-        let max = this.calcDepths(this.termNode, map);
-        console.log(max);
+        this.maxDepths = this.calcDepths(this.termNode, map);
+        console.log(this.maxDepths);
 
         let connections: Connection[] = [];
         this.termNode.breadthFirst((n) => {
@@ -96,7 +97,6 @@ export class KmapTermTree extends LitElement {
         });
         this.depths = map;
         this.connections = connections;
-        this.calculatedHeight = "calc(var(--kmap-term-tree-vertical-distance, 1.5em) * " + (max+1) + ")";
       }
     }
     super.update(_changedProperties);
@@ -113,15 +113,12 @@ export class KmapTermTree extends LitElement {
   }
 
   render() {
-    if (this.calculatedHeight)
-      this.style.height = this.calculatedHeight;
-
     return html`
       ${this.connections ? html`
         <kmap-term-tree-edges .tension="${this.tension}"></kmap-term-tree-edges>
       ` : ''}
       ${!this.tokens ? '' : html`
-        <div class="tokens">
+        <div class="tokens" id="tokens">
           ${this.tokens.map((t) => html`
             <div class="token" id="${t.id}">${this._prettify(t.value)}</div>
           `)}
@@ -140,6 +137,7 @@ export class KmapTermTree extends LitElement {
   protected async updated(_changedProperties: PropertyValues) {
     if (_changedProperties.has("connections")) {
       await this.updateComplete;
+
       let edges: Edge[] = [];
       if (this.edgesElement && this.connections) {
         for (const connection of this.connections) {
@@ -148,6 +146,12 @@ export class KmapTermTree extends LitElement {
             edges.push(edge);
         }
         this.edgesElement.edges = edges;
+      }
+
+      if (this.tokensElement && this.maxDepths ) {
+        let tokensHeight = this.tokensElement.offsetHeight;
+        this.style.height = "calc(3px + " + tokensHeight + "px + var(--kmap-term-tree-vertical-distance, " + tokensHeight + "px) * " + (this.maxDepths) + ")"
+        console.log(this.style.height);
       }
     }
   }
@@ -204,7 +208,7 @@ export class KmapTermTreeEdge extends LitElement {
     return this.edges === undefined ? '' : svg`
       <svg style="position:absolute;left:0px;top:0px" width="${parent.clientWidth}" height="${parent.clientHeight}">
       ${this.edges.map(edge => svg`
-        <path d="${this._path(edge)}" fill="none" stroke-width="3" stroke-opacity=".9"/>
+        <path d="${this._path(edge)}" fill="none" stroke-width="2" stroke-opacity=".9"/>
       `)}
       </svg>
     `;
