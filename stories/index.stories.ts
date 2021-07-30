@@ -7,9 +7,9 @@ export default {
   argTypes: {
     term: { control: 'text' },
     textColor: { control: 'color' },
+    backgroundColor: { control: 'color' },
     borderColor: { control: 'color' },
     edgeColor: { control: 'color' },
-    verticalDistance: { control: 'text' },
   },
 };
 
@@ -22,20 +22,20 @@ interface Story<T> {
 interface ArgTypes {
   term?: string;
   textColor?: string;
+  backgroundColor?: string;
   borderColor?: string;
   edgeColor?: string;
-  verticalDistance?: string;
 }
 
 const Template: Story<ArgTypes> = ({
   term = '2a+sin(3b)',
   textColor,
+  backgroundColor,
   borderColor,
   edgeColor,
-  verticalDistance,
 }: ArgTypes) => html`
   <kmap-term-tree
-    style="--kmap-term-tree-text-color: ${textColor || 'black'}; --kmap-term-tree-border-color: ${borderColor || '#005b9f'}; --kmap-term-tree-edge-color: ${edgeColor || '#fbc02d'}; --kmap-term-tree-vertical-distance: ${verticalDistance || '2em'}"
+    style="--kmap-term-tree-text-color: ${textColor || 'black'}; --kmap-term-tree-background-color: ${backgroundColor || 'white'}; --kmap-term-tree-border-color: ${borderColor || '#005b9f'}; --kmap-term-tree-edge-color: ${edgeColor || '#fbc02d'};"
     .term=${term}
   >
   </kmap-term-tree>

@@ -38,7 +38,7 @@ export class KmapTermTree extends LitElement {
     .token, .node {
       display: inline-block;
       position: relative;
-      background-color: white;
+      background-color: var(--kmap-term-tree-background-color, white);
     }
     .node {
       display: inline-block;
@@ -52,13 +52,22 @@ export class KmapTermTree extends LitElement {
       visibility: hidden;
     }
     .node[depth="1"] {
-        top: calc(var(--kmap-term-tree-vertical-distance, 2em) * 1);
+        top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 1.5);
     }
     .node[depth="2"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 2em) * 2);
+      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 3);
     }
     .node[depth="3"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 2em) * 3);
+      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 4.5);
+    }
+    .node[depth="4"] {
+      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 6);
+    }
+    .node[depth="5"] {
+      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 7.5);
+    }
+    .node[depth="6"] {
+      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 9);
     }
   `;
 
@@ -86,7 +95,6 @@ export class KmapTermTree extends LitElement {
 
         let map: {[key: string]: number} = {};
         this.maxDepths = this.calcDepths(this.termNode, map);
-        console.log(this.maxDepths);
 
         let connections: Connection[] = [];
         this.termNode.breadthFirst((n) => {
@@ -138,6 +146,16 @@ export class KmapTermTree extends LitElement {
     if (_changedProperties.has("connections")) {
       await this.updateComplete;
 
+      if (this.tokensElement && this.maxDepths ) {
+        let tokensHeight = this.tokensElement.offsetHeight;
+        console.log(this.maxDepths)
+        console.log(tokensHeight + "px")
+        this.style.setProperty("--kmap-term-tree-max-depth", "" + this.maxDepths);
+        this.style.setProperty("--kmap-term-tree-vertical-distance", tokensHeight + "px");
+        this.style.height = "calc(3px + var(--kmap-term-tree-vertical-distance) * (var(--kmap-term-tree-max-depth)*1.5 + 1))";
+        console.log(this.style.height);
+      }
+
       let edges: Edge[] = [];
       if (this.edgesElement && this.connections) {
         for (const connection of this.connections) {
@@ -146,12 +164,6 @@ export class KmapTermTree extends LitElement {
             edges.push(edge);
         }
         this.edgesElement.edges = edges;
-      }
-
-      if (this.tokensElement && this.maxDepths ) {
-        let tokensHeight = this.tokensElement.offsetHeight;
-        this.style.height = "calc(3px + " + tokensHeight + "px + var(--kmap-term-tree-vertical-distance, " + tokensHeight + "px) * " + (this.maxDepths) + ")"
-        console.log(this.style.height);
       }
     }
   }
