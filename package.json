@@ -1,6 +1,6 @@
 {
   "name": "kmap-term-tree",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "Renders a tree from a mathematical term",
   "author": "Holger Engels",
   "repository": {
