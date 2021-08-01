@@ -100,37 +100,4 @@ export class Parser {
 
     return this.outStack.pop();
   }
-
-  static test() {
-    //console.log(new Parser().parse("89sin(sqrt(45))/3^4 + 2.2xy/7").toString(0))
-    const parser = new Parser();
-    //const termNode = parser.parse("(2a+7a)+3b^2")
-    const tokens = Token.tokenize("sin(7a+3b)^2");
-    const node = parser.parse(tokens);
-    let array: Token[] = [];
-    let depths: number[] = [];
-    node.breadthFirst((n, d) => {
-      if (n.token.type !== "Literal" && n.token.type !== "Variable") {
-        array.push(n.token);
-        depths.push(d);
-      }
-    });
-    array = array.reverse();
-    depths = depths.reverse();
-    var ld = 0;
-    var s: string = "";
-    for (const t of tokens) {
-      if (s !== "")
-        s += " ";
-      s += t.value;
-    }
-    for (let i = 0; i < array.length; i++) {
-      s += depths[i] === ld ? " " : "\n";
-      s += array[i].value;
-      ld = depths[i];
-    }
-    console.log(s)
-  }
 }
-
-Parser.test()
