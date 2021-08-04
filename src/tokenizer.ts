@@ -47,6 +47,7 @@ export class Token {
     public static tokenize(string: string): Token[] {
 
         var result: Token[] = [];
+        string = string.replace(/·/g, "*").replace(/:/g, "/");
         var array = string.replace(/\s+/g, "").split("");
 
         var lbuf = "";
