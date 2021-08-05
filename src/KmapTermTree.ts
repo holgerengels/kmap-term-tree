@@ -28,8 +28,12 @@ export class KmapTermTree extends LitElement {
     .tokens, .nodes, kmap-term-tree-edges {
       position: absolute;
     }
-    .tokens, .nodes, .notokens {
+    .tokens, .nodes {
       white-space: nowrap;
+    }
+    .notokens {
+      white-space: nowrap;
+      height: 0px;
     }
     .notokens div {
       display: inline-block;
