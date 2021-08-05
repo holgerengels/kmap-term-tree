@@ -28,8 +28,11 @@ export class KmapTermTree extends LitElement {
     .tokens, .nodes, kmap-term-tree-edges {
       position: absolute;
     }
-    .tokens, .nodes {
+    .tokens, .nodes, .notokens {
       white-space: nowrap;
+    }
+    .notokens div {
+      display: inline-block;
     }
     kmap-term-tree-edges {
       width: 100%;
@@ -132,6 +135,11 @@ export class KmapTermTree extends LitElement {
         <div class="tokens" id="tokens">
           ${this.tokens.map((t) => html`
             <div class="token" id="${t.id}">${this._prettify(t.value)}</div>
+          `)}
+        </div>
+        <div class="notokens">
+          ${this.tokens.map((t) => html`
+            <div>${this._prettify(t.value)}</div>
           `)}
         </div>
       ` }
