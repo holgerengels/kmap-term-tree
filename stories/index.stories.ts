@@ -1,5 +1,5 @@
 import { html, TemplateResult } from 'lit-html';
-import '../kmap-term-tree.js';
+import '../src/kmap-term-tree.js';
 
 export default {
   title: 'KmapTermTree',

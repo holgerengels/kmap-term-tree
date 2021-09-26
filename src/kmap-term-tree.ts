@@ -1,3 +1,3 @@
-import { KmapTermTree } from './src/KmapTermTree.js';
+import { KmapTermTree } from './KmapTermTree.js';
 
 window.customElements.define('kmap-term-tree', KmapTermTree);

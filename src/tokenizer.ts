@@ -68,6 +68,7 @@ export class Token {
         }
       }
 
+      let lchar: string | undefined;
         array.forEach((char) => {
             if (Token.isDigit(char)) {
               nbuf += char;
@@ -101,6 +102,9 @@ export class Token {
                 result.push(new Token("Operator", "*"));
                 nbuf = "";
               }
+              else if (lchar === ")") {
+                result.push(new Token("Operator", "*"));
+              }
               result.push(new Token("Left Parenthesis", char));
             }
             else if (Token.isRightParenthesis(char)) {
@@ -111,6 +115,7 @@ export class Token {
               flush(result);
               result.push(new Token("Comma", char));
             }
+            lchar = char;
         });
       flush(result);
 
@@ -153,5 +158,3 @@ export class Token {
   static assoc: { [key: string]: Associativity } = {  "^" : "right",  "*" : "left",  "/" : "left",  "+" : "left",  "-" : "left" };
   static prec: { [key: string]: number } = {  "^" : 4,  "*" : 3,  "/" : 3,  "+" : 2,  "-" : 2 };
 }
-
-//console.log(Token.tokenize("89sin(sqrt(45))/3^4 + 2.2xy/7"))

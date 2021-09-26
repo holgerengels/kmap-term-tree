@@ -213,7 +213,14 @@ export class KmapTermTree extends LitElement {
   }
 
   private _prettify(value: string) {
-    return value === "*" ? "·" : value;
+    switch (value) {
+      case '*':
+        return "·"
+      case '-':
+        return "−"; // math minus
+      default:
+        return value;
+    }
   }
 }
 
