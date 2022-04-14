@@ -1,7 +1,8 @@
-import {css, html, LitElement, property, PropertyValues, query, internalProperty, svg} from 'lit-element';
+import {css, html, LitElement, PropertyValues, svg} from 'lit';
+import {property, state, query} from 'lit/decorators.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 import {Parser, TermNode} from "./parser.js";
 import {Token} from "./tokenizer.js";
-import {ifDefined} from "lit-html/directives/if-defined.js";
 
 interface Connection {
   from: number,
@@ -18,6 +19,8 @@ interface Edge {
   to: Position,
 }
 export class KmapTermTree extends LitElement {
+  declare shadowRoot: ShadowRoot;
+
   // language=CSS
   static styles = css`
     :host {
@@ -86,13 +89,13 @@ export class KmapTermTree extends LitElement {
   @property({ type: String }) term?: string;
   @property({type: Number}) tension: number = 0;
 
-  @internalProperty() tokens?: Token[];
-  @internalProperty() nodes?: TermNode[];
-  @internalProperty() termNode?: TermNode;
-  @internalProperty() depths?: {[key: string]: number};
-  @internalProperty() maxDepths?: number;
+  @state() tokens?: Token[];
+  @state() nodes?: TermNode[];
+  @state() termNode?: TermNode;
+  @state() depths?: {[key: string]: number};
+  @state() maxDepths?: number;
 
-  @internalProperty() connections?: Connection[];
+  @state() connections?: Connection[];
 
   @query("kmap-term-tree-edges") edgesElement?: KmapTermTreeEdge;
   @query("#tokens") tokensElement?: HTMLDivElement;
@@ -138,19 +141,19 @@ export class KmapTermTree extends LitElement {
       ${!this.tokens ? '' : html`
         <div class="tokens" id="tokens">
           ${this.tokens.map((t) => html`
-            <div class="token" id="${t.id}">${this._prettify(t.value)}</div>
+            <div class="token" id="${t.id}">${KmapTermTree._prettify(t.value)}</div>
           `)}
         </div>
         <div class="notokens">
           ${this.tokens.map((t) => html`
-            <div>${this._prettify(t.value)}</div>
+            <div>${KmapTermTree._prettify(t.value)}</div>
           `)}
         </div>
       ` }
       ${this.tokens && this.depths ? html`
         <div class="nodes">
           ${this.tokens.map((t) => html`
-            <div class="node" id="n${t.id}" depth="${ifDefined(this.depths ? this.depths[t.id]: undefined)}">${this._prettify(t.value)}</div>
+            <div class="node" id="n${t.id}" depth="${ifDefined(this.depths ? this.depths[t.id]: undefined)}">${KmapTermTree._prettify(t.value)}</div>
           `)}
         </div>
       ` : ''}
@@ -163,12 +166,12 @@ export class KmapTermTree extends LitElement {
 
       if (this.tokensElement && this.maxDepths ) {
         let tokensHeight = this.tokensElement.offsetHeight;
-        console.log(this.maxDepths)
-        console.log(tokensHeight + "px")
+        //console.log(this.maxDepths)
+        //console.log(tokensHeight + "px")
         this.style.setProperty("--kmap-term-tree-max-depth", "" + this.maxDepths);
         this.style.setProperty("--kmap-term-tree-vertical-distance", tokensHeight + "px");
         this.style.height = "calc(3px + var(--kmap-term-tree-vertical-distance) * (var(--kmap-term-tree-max-depth)*1.5 + 1))";
-        console.log(this.style.height);
+        //console.log(this.style.height);
       }
 
       let edges: Edge[] = [];
@@ -184,8 +187,6 @@ export class KmapTermTree extends LitElement {
   }
 
   _connect(connection: Connection): Edge | undefined {
-    if (!this.shadowRoot)
-      return;
     let from = this.shadowRoot.getElementById("n" + connection.from);
     let to = this.shadowRoot.getElementById("n" + connection.to);
     if (!from || !to)
@@ -200,7 +201,7 @@ export class KmapTermTree extends LitElement {
     var x: number = 0;
     var y: number = 0;
     var el: HTMLElement | null = element;
-    for (; el != this; el = el.offsetParent as HTMLElement) {
+    for (; el !== this; el = el.offsetParent as HTMLElement) {
       x += el.offsetLeft;
       y += el.offsetTop;
     }
@@ -212,7 +213,7 @@ export class KmapTermTree extends LitElement {
     };
   }
 
-  private _prettify(value: string) {
+  private static _prettify(value: string) {
     switch (value) {
       case '*':
         return "·"
