@@ -16,12 +16,6 @@ npm i kmap-term-tree
 <kmap-term-tree term="2a+3b"></kmap-term-tree>
 ```
 
-<script type="module">
-    import {KmapTermTree} from 'https://cdn.jsdelivr.net/npm/kmap-term-tree/+esm';
-    window.customElements.define('kmap-term-tree', KmapTermTree);
-</script>
-<kmap-term-tree term="2a+3b"></kmap-term-tree>
-
 ## Linting with ESLint, Prettier, and Types
 To scan the project for linting errors, run
 ```bash
