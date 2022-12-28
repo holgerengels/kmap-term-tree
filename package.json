@@ -1,6 +1,6 @@
 {
   "name": "kmap-term-tree",
-  "version": "0.9.19",
+  "version": "0.9.20",
   "description": "Renders a tree from a mathematical term",
   "author": "Holger Engels",
   "repository": {
@@ -36,7 +36,7 @@
     "storybook:build": "tsc && build-storybook"
   },
   "dependencies": {
-    "lit": "^2.4.0"
+    "lit": "^2.5.0"
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^4.3.0",

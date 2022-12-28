@@ -100,6 +100,12 @@ export class KmapTermTree extends LitElement {
   @query("kmap-term-tree-edges") edgesElement?: KmapTermTreeEdge;
   @query("#tokens") tokensElement?: HTMLDivElement;
 
+  // @ts-ignore
+  updateSlotted({target}) {
+    // @ts-ignore
+    this.term = target.assignedNodes().map((n) => n.textContent).join('');
+  }
+
   protected update(_changedProperties: PropertyValues) {
     if (_changedProperties.has("term")) {
       if (this.term !== undefined) {
@@ -157,6 +163,9 @@ export class KmapTermTree extends LitElement {
           `)}
         </div>
       ` : ''}
+      <div hidden>
+        <slot @slotchange=${this.updateSlotted}></slot>
+      </div>
     `;
   }
 

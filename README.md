@@ -15,6 +15,17 @@ npm i kmap-term-tree
 
 <kmap-term-tree term="2a+3b"></kmap-term-tree>
 ```
+or
+```html
+<script type="module">
+  import 'kmap-term-tree/kmap-term-tree.js';
+</script>
+
+<kmap-term-tree>2a+3b</kmap-term-tree>
+```
+
+## Demo
+[KMap Termbaum](https://kmap.eu/app/browser/Mathematik/Tools/Termbaum)
 
 ## Linting with ESLint, Prettier, and Types
 To scan the project for linting errors, run
