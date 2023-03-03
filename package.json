@@ -2,6 +2,7 @@
   "name": "kmap-term-tree",
   "version": "0.9.20",
   "description": "Renders a tree from a mathematical term",
+  "license": "MIT",
   "author": "Holger Engels",
   "repository": {
     "type": "git",
@@ -16,7 +17,6 @@
     "term",
     "ast"
   ],
-  "license": "MIT",
   "type": "module",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
@@ -40,26 +40,26 @@
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^4.3.0",
-    "@open-wc/testing": "^2.5.33",
-    "@typescript-eslint/eslint-plugin": "^4.28.3",
-    "@typescript-eslint/parser": "^4.28.3",
+    "@open-wc/testing": "next",
+    "@typescript-eslint/eslint-plugin": "^4.29.2",
+    "@typescript-eslint/parser": "^4.29.2",
     "@web/dev-server": "^0.1.29",
-    "@web/dev-server-storybook": "^0.3.5",
-    "@web/test-runner": "^0.12.20",
+    "@web/dev-server-storybook": "next",
+    "@web/test-runner": "next",
     "concurrently": "^5.3.0",
-    "eslint": "^7.30.0",
-    "eslint-config-prettier": "^7.2.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
     "husky": "^4.3.8",
     "lint-staged": "^10.5.4",
-    "prettier": "^2.2.1",
+    "prettier": "^2.3.2",
     "tslib": "^2.4.1",
-    "typescript": "~4.8.4"
+    "typescript": "~4.9.4"
   },
   "eslintConfig": {
     "parser": "@typescript-eslint/parser",
     "extends": [
-      "@open-wc/eslint-config",
-      "eslint-config-prettier"
+      "@open-wc",
+      "prettier"
     ],
     "plugins": [
       "@typescript-eslint"
