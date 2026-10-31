@@ -53,4 +53,26 @@ describe('KmapTermTree', () => {
     // The overlay bottom must be at or below the denominator bottom
     expect(overlayRect.bottom).to.be.at.least(r2.bottom);
   });
+
+  it('computes correct layout even with CSS scale transform', async () => {
+    const el = await fixture<KmapTermTree>(
+      html`<kmap-term-tree term="2a+3b"></kmap-term-tree>`
+    );
+    await el.updateComplete;
+
+    const normalNode = el.shadowRoot!.querySelector('.tree-node') as HTMLElement;
+    expect(normalNode).to.exist;
+    const normalLeft = parseFloat(normalNode.style.left);
+
+    // Apply scale transform and recalculate layout
+    el.style.transform = 'scale(0.3)';
+    (el as any).recalculateLayout();
+
+    const scaledNode = el.shadowRoot!.querySelector('.tree-node') as HTMLElement;
+    const scaledLeft = parseFloat(scaledNode.style.left);
+
+    // Both should compute substantially the same local canvas left coordinate (within 2px)
+    expect(Math.abs(scaledLeft - normalLeft)).to.be.below(2);
+  });
 });
+

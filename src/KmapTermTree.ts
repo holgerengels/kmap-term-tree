@@ -208,17 +208,117 @@ export class KmapTermTree extends LitElement {
   @query('.tree-canvas') private treeCanvasElement?: HTMLElement;
 
   private resizeObserver?: ResizeObserver;
+  private lastObservedWidth = 0;
+  private resizeFrameId?: number;
+  private animationTimers: number[] = [];
 
   connectedCallback() {
     super.connectedCallback();
-    this.resizeObserver = new ResizeObserver(() => {
-      this.recalculateLayout();
+    this.resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        if (Math.abs(width - this.lastObservedWidth) > 0.5) {
+          this.lastObservedWidth = width;
+          this.triggerLayoutUpdate();
+        }
+      }
     });
+
+    window.addEventListener('animationend', this.onAnimationOrTransitionEnd);
+    window.addEventListener('transitionend', this.onAnimationOrTransitionEnd);
+
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.ready.then(() => {
+        if (this.isConnected) {
+          this.recalculateLayout();
+        }
+      });
+    }
   }
 
   disconnectedCallback() {
+    if (this.resizeFrameId) {
+      cancelAnimationFrame(this.resizeFrameId);
+    }
+    this.clearAnimationTimers();
+    window.removeEventListener('animationend', this.onAnimationOrTransitionEnd);
+    window.removeEventListener('transitionend', this.onAnimationOrTransitionEnd);
     this.resizeObserver?.disconnect();
     super.disconnectedCallback();
+  }
+
+  private onAnimationOrTransitionEnd = () => {
+    this.triggerLayoutUpdate();
+  };
+
+  private triggerLayoutUpdate() {
+    if (this.resizeFrameId) {
+      cancelAnimationFrame(this.resizeFrameId);
+    }
+    this.resizeFrameId = requestAnimationFrame(() => {
+      if (this.isConnected) {
+        this.recalculateLayout();
+      }
+    });
+  }
+
+  private watchAncestorAnimations() {
+    let curr: Element | null = this;
+    const animations: Animation[] = [];
+
+    while (curr) {
+      if (typeof curr.getAnimations === 'function') {
+        for (const anim of curr.getAnimations()) {
+          if (anim.playState === 'running' || anim.pending) {
+            animations.push(anim);
+          }
+        }
+      }
+      const root = curr.getRootNode() as ShadowRoot | Document;
+      if (root && 'host' in root) {
+        curr = (root as ShadowRoot).host;
+      } else {
+        curr = curr.parentElement;
+      }
+    }
+
+    if (animations.length > 0) {
+      Promise.all(animations.map(a => a.finished.catch(() => {}))).then(() => {
+        if (this.isConnected) {
+          this.recalculateLayout();
+        }
+      });
+    }
+  }
+
+  private scheduleAnimationCheck() {
+    this.clearAnimationTimers();
+    this.watchAncestorAnimations();
+
+    const t1 = window.setTimeout(() => {
+      if (!this.isConnected) return;
+      this.watchAncestorAnimations();
+      this.recalculateLayout();
+    }, 50);
+
+    const t2 = window.setTimeout(() => {
+      if (!this.isConnected) return;
+      this.recalculateLayout();
+    }, 320);
+
+    const t3 = window.setTimeout(() => {
+      if (!this.isConnected) return;
+      this.recalculateLayout();
+    }, 450);
+
+    this.animationTimers.push(t1, t2, t3);
+  }
+
+  private clearAnimationTimers() {
+    for (const t of this.animationTimers) {
+      clearTimeout(t);
+    }
+    this.animationTimers = [];
   }
 
   // Support slotted content: <kmap-term-tree>2a+3b</kmap-term-tree>
@@ -270,6 +370,7 @@ export class KmapTermTree extends LitElement {
       if (this.treeCanvasElement && this.resizeObserver) {
         this.resizeObserver.observe(this.treeCanvasElement);
       }
+      this.scheduleAnimationCheck();
     }
   }
 
@@ -298,7 +399,15 @@ export class KmapTermTree extends LitElement {
       return;
 
     const canvasRect = this.treeCanvasElement.getBoundingClientRect();
-    if (canvasRect.width === 0) return;
+    const offsetWidth = this.treeCanvasElement.offsetWidth;
+    const offsetHeight = this.treeCanvasElement.offsetHeight;
+
+    if (canvasRect.width === 0 || offsetWidth === 0) return;
+    this.lastObservedWidth = offsetWidth;
+
+    const scaleX = canvasRect.width / offsetWidth;
+    const scaleY = offsetHeight > 0 ? canvasRect.height / offsetHeight : scaleX;
+    if (scaleX < 0.01 || scaleY < 0.01) return;
 
     const flatNodes: TermNode[] = [];
     const nodeMap = new Map<string, TermNode>();
@@ -312,12 +421,12 @@ export class KmapTermTree extends LitElement {
         const el = this.shadowRoot!.getElementById(node.id);
         if (el) {
           const rect = el.getBoundingClientRect();
-          node.x = rect.left - canvasRect.left + rect.width / 2;
-          node.y = rect.bottom - canvasRect.top;
-          node.width = rect.width;
-          node.height = rect.height;
+          node.x = (rect.left - canvasRect.left + rect.width / 2) / scaleX;
+          node.y = (rect.bottom - canvasRect.top) / scaleY;
+          node.width = rect.width / scaleX;
+          node.height = rect.height / scaleY;
         } else {
-          node.x = canvasRect.width / 2;
+          node.x = offsetWidth / 2;
           node.y = 20;
         }
       } else {
@@ -332,7 +441,7 @@ export class KmapTermTree extends LitElement {
 
     // 2. Position inner nodes bottom-up based on children coordinates
     const formulaRect = this.formulaElement.getBoundingClientRect();
-    const formulaBottomRel = formulaRect.bottom - canvasRect.top;
+    const formulaBottomRel = (formulaRect.bottom - canvasRect.top) / scaleY;
     const initialGap = 34; // distance from formula bottom to level 1 operators
     const rowHeight = 40; // distance between tree levels
 
@@ -349,7 +458,7 @@ export class KmapTermTree extends LitElement {
           const el = this.shadowRoot!.getElementById(node.id);
           if (el) {
             const rect = el.getBoundingClientRect();
-            node.x = rect.left - canvasRect.left + rect.width / 2;
+            node.x = (rect.left - canvasRect.left + rect.width / 2) / scaleX;
           } else {
             node.x = node.children[0].x ?? 0;
           }
@@ -486,14 +595,28 @@ export class KmapTermTree extends LitElement {
     }
 
     const canvasRect = this.treeCanvasElement.getBoundingClientRect();
+    const offsetWidth = this.treeCanvasElement.offsetWidth;
+    const offsetHeight = this.treeCanvasElement.offsetHeight;
+    if (canvasRect.width === 0 || offsetWidth === 0) {
+      this.highlightRect = undefined;
+      return;
+    }
+
+    const scaleX = canvasRect.width / offsetWidth;
+    const scaleY = offsetHeight > 0 ? canvasRect.height / offsetHeight : scaleX;
+    if (scaleX < 0.01 || scaleY < 0.01) {
+      this.highlightRect = undefined;
+      return;
+    }
+
     const paddingX = 4;
     const paddingY = 4;
 
     this.highlightRect = {
-      left: bounds.left - canvasRect.left - paddingX,
-      top: bounds.top - canvasRect.top - paddingY,
-      width: bounds.right - bounds.left + paddingX * 2,
-      height: bounds.bottom - bounds.top + paddingY * 2,
+      left: (bounds.left - canvasRect.left) / scaleX - paddingX,
+      top: (bounds.top - canvasRect.top) / scaleY - paddingY,
+      width: (bounds.right - bounds.left) / scaleX + paddingX * 2,
+      height: (bounds.bottom - bounds.top) / scaleY + paddingY * 2,
     };
   }
 

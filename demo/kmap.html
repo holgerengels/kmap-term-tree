@@ -1,0 +1,64 @@
+<style>
+  input {
+    border-radius: 4px 4px 0 0;
+    background-color: inherit;
+    border: none;
+    border-bottom: 1px solid darkgray;
+    padding: 8px;
+    transition: background-color .3s ease-in-out, border-bottom-color .3s ease-in-out;
+    outline: none;
+  }
+
+  input:hover {
+    background-color: lightgray;
+    border-bottom-color: black;
+  }
+
+  input:focus {
+    background-color: lightgray;
+    border-bottom-color: blue;
+  }
+</style>
+
+<h3>Termbaum Generator</h3>
+<p>Hier gibt es ein Tool, das zu einem Term automatisch den Termbaum erzeugt:</p>
+<container>
+  <box>
+    <div><span style="white-space: nowrap"><b>Term: </b> <input id="term"
+          oninput="this.getRootNode().querySelector('#tree').term = event.target.value" /></span>
+    </div>
+    <p><i>Ändere den Term und schau Dir den Baum dazu an!</i></p>
+    <div class="presets">
+      <b>Beispiele:</b>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = '2a+3b'; this.getRootNode().querySelector('#tree').term = '2a+3b'">2a+3b</button>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = '(2+a)(3-b)'; this.getRootNode().querySelector('#tree').term = '(2+a)(3-b)'">(2+a)(3-b)</button>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = '(a+b)/(c+d)'; this.getRootNode().querySelector('#tree').term = '(a+b)/(c+d)'">(a+b)/(c+d)</button>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = '2a + sin(3b)'; this.getRootNode().querySelector('#tree').term = '2a + sin(3b)'">2a
+        + sin(3b)</button>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = 'x^2 - 4'; this.getRootNode().querySelector('#tree').term = 'x^2 - 4'">x^2
+        - 4</button>
+      <button class="chip"
+        onclick="this.getRootNode().querySelector('#term').value = 'sqrt(b^2 - 4ac)'; this.getRootNode().querySelector('#tree').term = 'sqrt(b^2 - 4ac)'">sqrt(b^2
+        - 4ac)</button>
+    </div>
+  </box>
+  <growbox>
+    <kmap-term-tree lazy:KmapTermTree:kmap-term-tree id="tree" showDetails></kmap-term-tree>
+  </growbox>
+</container>
+
+<script>
+  const root = document.currentScript ? document.currentScript.getRootNode() : document;
+  console.log(root)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.querySelector('#term').value = '2a+3b';
+      root.querySelector('#tree').term = '2a+3b';
+    });
+  });
+</script>
