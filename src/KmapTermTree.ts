@@ -1,279 +1,601 @@
-import {css, html, LitElement, PropertyValues, svg} from 'lit';
-import {property, state, query} from 'lit/decorators.js';
-import {ifDefined} from 'lit/directives/if-defined.js';
-import {Parser, TermNode} from "./parser.js";
-import {Token} from "./tokenizer.js";
+import { css, html, LitElement, PropertyValues, svg } from 'lit';
+import { property, state, query } from 'lit/decorators.js';
+import katex from 'katex';
+import { katexStyles } from './katex-css.js';
+import { TermNode, TreeEdge } from './model.js';
+import { parseAsciiMath, astToAnnotatedLatex } from './asciimath-parser.js';
 
-interface Connection {
-  from: number,
-  to: number,
-}
-interface Position {
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-}
-interface Edge {
-  from: Position,
-  to: Position,
-}
 export class KmapTermTree extends LitElement {
-  declare shadowRoot: ShadowRoot;
+  static styles = [
+    katexStyles,
+    css`
+      :host {
+        display: block;
+        position: relative;
+        font-family: var(
+          --kmap-term-tree-font-family,
+          system-ui,
+          -apple-system,
+          sans-serif
+        );
+        color: var(--kmap-term-tree-text-color, #1f2937);
+        user-select: none;
+        width: 100%;
+      }
 
-  // language=CSS
-  static styles = css`
-    :host {
-      display: block;
-      color: var(--kmap-term-tree-text-color, #000);
-      position: relative;
-    }
-    .tokens, .nodes, kmap-term-tree-edges {
-      position: absolute;
-    }
-    .tokens, .nodes {
-      white-space: nowrap;
-    }
-    .notokens {
-      white-space: nowrap;
-      height: 0px;
-    }
-    .notokens div {
-      display: inline-block;
-    }
-    kmap-term-tree-edges {
-      width: 100%;
-      height: 100%;
-    }
-    .token {
-      display: inline-block;
-    }
-    .token, .node {
-      display: inline-block;
-      position: relative;
-      background-color: var(--kmap-term-tree-background-color, white);
-    }
-    .node {
-      display: inline-block;
-      position: relative;
-      border: 1px solid var(--kmap-term-tree-border-color, #005b9f);
-      padding: 0px 4px;
-      border-radius: 1em;
-      margin: -1px -5px;
-    }
-    .node[depth="0"], .node:not([depth]) {
-      visibility: hidden;
-    }
-    .node[depth="1"] {
-        top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 1.5);
-    }
-    .node[depth="2"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 3);
-    }
-    .node[depth="3"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 4.5);
-    }
-    .node[depth="4"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 6);
-    }
-    .node[depth="5"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 7.5);
-    }
-    .node[depth="6"] {
-      top: calc(var(--kmap-term-tree-vertical-distance, 1.5em) * 9);
-    }
-  `;
+      .container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+      }
 
-  private parser: Parser = new Parser();
+      .tree-canvas {
+        position: relative;
+        width: 100%;
+        min-height: 80px;
+      }
+
+      .formula-wrapper {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 4px;
+        font-size: var(--kmap-term-tree-formula-font-size, 1.35rem);
+      }
+
+      .highlight-overlay {
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+        background-color: var(
+          --kmap-term-tree-highlight-color,
+          rgba(251, 191, 36, 0.28)
+        );
+        border: 2px solid
+          var(--kmap-term-tree-highlight-outline, rgba(245, 158, 11, 0.75));
+        border-radius: 6px;
+        box-sizing: border-box;
+        transition: left 0.12s ease-out, top 0.12s ease-out,
+          width 0.12s ease-out, height 0.12s ease-out;
+      }
+
+      .edges-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: visible;
+      }
+
+      .edge-path {
+        fill: none;
+        stroke: var(--kmap-term-tree-edge-color, #f59e0b);
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        opacity: 0.85;
+        transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+      }
+
+      .edge-path.highlighted {
+        stroke: var(--kmap-term-tree-highlight-edge-color, #d97706);
+        stroke-width: 3.2;
+        opacity: 1;
+      }
+
+      .tree-node {
+        position: absolute;
+        z-index: 2;
+        transform: translate(-50%, -50%);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .tree-node:hover,
+      .tree-node.active {
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+
+      .node-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--kmap-term-tree-background-color, #ffffff);
+        border: 2px solid var(--kmap-term-tree-border-color, #0284c7);
+        color: var(--kmap-term-tree-node-text-color, #0284c7);
+        font-weight: 700;
+        font-size: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+      }
+
+      .tree-node:hover .node-badge,
+      .tree-node.active .node-badge {
+        background: var(--kmap-term-tree-active-node-bg, #0284c7);
+        color: #ffffff;
+        border-color: var(--kmap-term-tree-active-node-border, #0284c7);
+        box-shadow: 0 4px 8px rgba(2, 132, 199, 0.35);
+      }
+
+      .node-label {
+        margin-top: 2px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #64748b;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 1px 4px;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      /* KaTeX Highlight */
+      .highlight-term {
+        background-color: var(
+          --kmap-term-tree-highlight-color,
+          rgba(251, 191, 36, 0.35)
+        ) !important;
+        border-radius: 4px;
+        outline: 2px solid
+          var(--kmap-term-tree-highlight-outline, rgba(245, 158, 11, 0.7));
+        transition: background-color 0.2s ease, outline 0.2s ease;
+      }
+
+      .info-bar {
+        margin-top: 12px;
+        padding: 6px 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #334155;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .info-badge {
+        font-weight: 700;
+        color: #0284c7;
+        background: #e0f2fe;
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+
+      .error-msg {
+        color: #dc2626;
+        padding: 8px;
+        font-size: 0.9rem;
+      }
+    `,
+  ];
 
   @property({ type: String }) term?: string;
-  @property({type: Number}) tension: number = 0;
+  @property({ type: Number }) tension: number = 0.5;
+  @property({ type: Boolean }) showLabels: boolean = false;
+  @property({ type: Boolean }) showDetails: boolean = true;
 
-  @state() tokens?: Token[];
-  @state() nodes?: TermNode[];
-  @state() termNode?: TermNode;
-  @state() depths?: {[key: string]: number};
-  @state() maxDepths?: number;
+  @state() private ast?: TermNode;
+  @state() private error?: string;
+  @state() private flatNodes: TermNode[] = [];
+  @state() private edges: TreeEdge[] = [];
+  @state() private activeNodeId?: string;
+  @state() private activeSubtreeIds: Set<string> = new Set();
+  @state() private treeHeight: number = 100;
+  @state() private highlightRect?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
 
-  @state() connections?: Connection[];
+  @query('#formula') private formulaElement?: HTMLElement;
+  @query('.tree-canvas') private treeCanvasElement?: HTMLElement;
 
-  @query("kmap-term-tree-edges") edgesElement?: KmapTermTreeEdge;
-  @query("#tokens") tokensElement?: HTMLDivElement;
+  private resizeObserver?: ResizeObserver;
 
-  // @ts-ignore
-  updateSlotted({target}) {
-    // @ts-ignore
-    this.term = target.assignedNodes().map((n) => n.textContent).join('');
+  connectedCallback() {
+    super.connectedCallback();
+    this.resizeObserver = new ResizeObserver(() => {
+      this.recalculateLayout();
+    });
   }
 
-  protected update(_changedProperties: PropertyValues) {
-    if (_changedProperties.has("term")) {
-      if (this.term !== undefined) {
-        this.tokens = Token.tokenize(this.term);
-        this.termNode = this.parser.parse(this.tokens);
+  disconnectedCallback() {
+    this.resizeObserver?.disconnect();
+    super.disconnectedCallback();
+  }
 
-        let map: {[key: string]: number} = {};
-        this.maxDepths = this.calcDepths(this.termNode, map);
-
-        let connections: Connection[] = [];
-        this.termNode.breadthFirst((n) => {
-          if (n.leftChildNode !== undefined)
-            connections.push({from: n.token.id, to: n.leftChildNode.token.id})
-          if (n.rightChildNode !== undefined)
-            connections.push({from: n.token.id, to: n.rightChildNode.token.id})
-        });
-        this.depths = map;
-        this.connections = connections;
-      }
+  // Support slotted content: <kmap-term-tree>2a+3b</kmap-term-tree>
+  updateSlotted(event: Event) {
+    const slot = event.target as HTMLSlotElement;
+    const text = slot
+      .assignedNodes()
+      .map(n => n.textContent)
+      .join('')
+      .trim();
+    if (text && text !== this.term) {
+      this.term = text;
     }
-    super.update(_changedProperties);
   }
 
-  private calcDepths(node: TermNode, map: { [p: string]: number }): number {
-    let depth = 0;
-    if (node.leftChildNode)
-      depth = Math.max(depth, this.calcDepths(node.leftChildNode, map) + 1);
-    if (node.rightChildNode)
-      depth = Math.max(depth, this.calcDepths(node.rightChildNode, map) + 1);
-    map[node.token.id] = depth;
-    return depth;
+  protected willUpdate(changedProperties: PropertyValues) {
+    if (changedProperties.has('term') && this.term !== undefined) {
+      this.parseInput(this.term);
+    }
   }
 
-  render() {
-    return html`
-      ${this.connections ? html`
-        <kmap-term-tree-edges .tension="${this.tension}"></kmap-term-tree-edges>
-      ` : ''}
-      ${!this.tokens ? '' : html`
-        <div class="tokens" id="tokens">
-          ${this.tokens.map((t) => html`
-            <div class="token" id="${t.id}">${KmapTermTree._prettify(t.value)}</div>
-          `)}
-        </div>
-        <div class="notokens">
-          ${this.tokens.map((t) => html`
-            <div>${KmapTermTree._prettify(t.value)}</div>
-          `)}
-        </div>
-      ` }
-      ${this.tokens && this.depths ? html`
-        <div class="nodes">
-          ${this.tokens.map((t) => html`
-            <div class="node" id="n${t.id}" depth="${ifDefined(this.depths ? this.depths[t.id]: undefined)}">${KmapTermTree._prettify(t.value)}</div>
-          `)}
-        </div>
-      ` : ''}
-      <div hidden>
-        <slot @slotchange=${this.updateSlotted}></slot>
-      </div>
-    `;
+  private parseInput(termStr: string) {
+    try {
+      this.error = undefined;
+      const cleanTerm = termStr.trim();
+      if (!cleanTerm) {
+        this.ast = undefined;
+        this.flatNodes = [];
+        this.edges = [];
+        return;
+      }
+
+      this.ast = parseAsciiMath(cleanTerm);
+      this.activeNodeId = this.ast.id;
+      this.activeSubtreeIds = this.collectSubtreeIds(this.ast);
+    } catch (e: any) {
+      this.error = e.message || 'Fehler beim Parsen des Terms';
+      this.ast = undefined;
+      this.flatNodes = [];
+      this.edges = [];
+    }
   }
 
-  protected async updated(_changedProperties: PropertyValues) {
-    if (_changedProperties.has("connections")) {
+  protected async updated(changedProperties: PropertyValues) {
+    if (changedProperties.has('term') || changedProperties.has('ast')) {
+      this.renderKaTeX();
       await this.updateComplete;
-
-      if (this.tokensElement && this.maxDepths ) {
-        let tokensHeight = this.tokensElement.offsetHeight;
-        //console.log(this.maxDepths)
-        //console.log(tokensHeight + "px")
-        this.style.setProperty("--kmap-term-tree-max-depth", "" + this.maxDepths);
-        this.style.setProperty("--kmap-term-tree-vertical-distance", tokensHeight + "px");
-        this.style.height = "calc(3px + var(--kmap-term-tree-vertical-distance) * (var(--kmap-term-tree-max-depth)*1.5 + 1))";
-        //console.log(this.style.height);
-      }
-
-      let edges: Edge[] = [];
-      if (this.edgesElement && this.connections) {
-        for (const connection of this.connections) {
-          let edge = this._connect(connection);
-          if (edge)
-            edges.push(edge);
-        }
-        this.edgesElement.edges = edges;
+      this.recalculateLayout();
+      if (this.treeCanvasElement && this.resizeObserver) {
+        this.resizeObserver.observe(this.treeCanvasElement);
       }
     }
   }
 
-  _connect(connection: Connection): Edge | undefined {
-    let from = this.shadowRoot.getElementById("n" + connection.from);
-    let to = this.shadowRoot.getElementById("n" + connection.to);
-    if (!from || !to)
+  private renderKaTeX() {
+    if (!this.formulaElement || !this.ast) return;
+
+    try {
+      const latex = astToAnnotatedLatex(this.ast);
+      katex.render(latex, this.formulaElement, {
+        trust: true,
+        strict: false,
+        throwOnError: false,
+      });
+    } catch (err: any) {
+      this.error = err.message;
+    }
+  }
+
+  private recalculateLayout() {
+    if (
+      !this.ast ||
+      !this.formulaElement ||
+      !this.treeCanvasElement ||
+      !this.shadowRoot
+    )
       return;
-    let frompos = this._findAbsolutePosition(from);
-    let topos = this._findAbsolutePosition(to);
 
-    return { from: frompos, to: topos };
+    const canvasRect = this.treeCanvasElement.getBoundingClientRect();
+    if (canvasRect.width === 0) return;
+
+    const flatNodes: TermNode[] = [];
+    const nodeMap = new Map<string, TermNode>();
+
+    // 1. Collect all nodes and measure leaf positions from KaTeX DOM elements
+    const collectAndPositionLeaves = (node: TermNode) => {
+      nodeMap.set(node.id, node);
+
+      if (node.children.length === 0) {
+        // Leaf node: measure rendered KaTeX span
+        const el = this.shadowRoot!.getElementById(node.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          node.x = rect.left - canvasRect.left + rect.width / 2;
+          node.y = rect.bottom - canvasRect.top;
+          node.width = rect.width;
+          node.height = rect.height;
+        } else {
+          node.x = canvasRect.width / 2;
+          node.y = 20;
+        }
+      } else {
+        flatNodes.push(node);
+        for (const child of node.children) {
+          collectAndPositionLeaves(child);
+        }
+      }
+    };
+
+    collectAndPositionLeaves(this.ast);
+
+    // 2. Position inner nodes bottom-up based on children coordinates
+    const formulaRect = this.formulaElement.getBoundingClientRect();
+    const formulaBottomRel = formulaRect.bottom - canvasRect.top;
+    const initialGap = 34; // distance from formula bottom to level 1 operators
+    const rowHeight = 40; // distance between tree levels
+
+    const positionInnerNodes = (node: TermNode) => {
+      for (const child of node.children) {
+        if (child.children.length > 0) {
+          positionInnerNodes(child);
+        }
+      }
+
+      if (node.children.length > 0) {
+        if (node.type === 'function' || node.isUnary) {
+          // Center under the full function / unary expression: e.g. sin(arg) or -arg
+          const el = this.shadowRoot!.getElementById(node.id);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            node.x = rect.left - canvasRect.left + rect.width / 2;
+          } else {
+            node.x = node.children[0].x ?? 0;
+          }
+        } else {
+          const first = node.children[0];
+          const last = node.children[node.children.length - 1];
+          node.x = ((first.x ?? 0) + (last.x ?? 0)) / 2;
+        }
+        node.y = formulaBottomRel + initialGap + (node.depth - 1) * rowHeight;
+      }
+    };
+
+    positionInnerNodes(this.ast);
+
+    // 3. Build edges between parent nodes and their children
+    const edges: TreeEdge[] = [];
+    for (const node of flatNodes) {
+      if (node.x === undefined || node.y === undefined) continue;
+
+      for (const child of node.children) {
+        if (child.x === undefined || child.y === undefined) continue;
+
+        edges.push({
+          fromNodeId: child.id,
+          toNodeId: node.id,
+          fromX: child.x,
+          fromY: child.y + (child.depth > 0 ? 14 : 2),
+          toX: node.x,
+          toY: node.y - 14,
+        });
+      }
+    }
+
+    const maxDepth = this.ast.depth;
+    this.treeHeight = Math.max(
+      60,
+      formulaBottomRel + initialGap + (maxDepth - 1) * rowHeight + 24
+    );
+    this.flatNodes = flatNodes;
+    this.edges = edges;
+    this.updateHighlightRect(this.activeNodeId);
+    this.requestUpdate();
   }
 
-  _findAbsolutePosition(element: HTMLElement): Position {
-    var x: number = 0;
-    var y: number = 0;
-    var el: HTMLElement | null = element;
-    for (; el !== this; el = el.offsetParent as HTMLElement) {
-      x += el.offsetLeft;
-      y += el.offsetTop;
+  private collectSubtreeIds(node: TermNode): Set<string> {
+    const ids = new Set<string>();
+    const traverse = (n: TermNode) => {
+      ids.add(n.id);
+      for (const c of n.children) traverse(c);
+    };
+    traverse(node);
+    return ids;
+  }
+
+  private onNodeHover(node: TermNode, enter: boolean) {
+    if (!enter) {
+      // Revert highlight to root node
+      if (this.ast) {
+        this.setActiveNode(this.ast);
+      }
+      return;
     }
-    return {
-      x: x,
-      y: y,
-      width: element.offsetWidth,
-      height: element.offsetHeight,
+    this.setActiveNode(node);
+  }
+
+  private setActiveNode(node: TermNode) {
+    this.activeNodeId = node.id;
+    this.activeSubtreeIds = this.collectSubtreeIds(node);
+    this.updateHighlightRect(node.id);
+    this.requestUpdate();
+  }
+
+  private findNode(
+    root: TermNode | undefined,
+    id: string
+  ): TermNode | undefined {
+    if (!root) return undefined;
+    if (root.id === id) return root;
+    for (const child of root.children) {
+      const found = this.findNode(child, id);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  private getNodeVisualBounds(
+    node: TermNode
+  ): { top: number; bottom: number; left: number; right: number } | null {
+    if (!this.shadowRoot) return null;
+
+    let minTop = Infinity;
+    let maxBottom = -Infinity;
+    let minLeft = Infinity;
+    let maxRight = -Infinity;
+
+    const collectBounds = (n: TermNode) => {
+      const el = this.shadowRoot!.getElementById(n.id);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          minTop = Math.min(minTop, r.top);
+          maxBottom = Math.max(maxBottom, r.bottom);
+          minLeft = Math.min(minLeft, r.left);
+          maxRight = Math.max(maxRight, r.right);
+        }
+      }
+      for (const child of n.children) {
+        collectBounds(child);
+      }
+    };
+
+    collectBounds(node);
+
+    if (minTop === Infinity) return null;
+    return { top: minTop, bottom: maxBottom, left: minLeft, right: maxRight };
+  }
+
+  private updateHighlightRect(nodeId?: string) {
+    if (!nodeId || !this.shadowRoot || !this.treeCanvasElement || !this.ast) {
+      this.highlightRect = undefined;
+      return;
+    }
+
+    const node = this.findNode(this.ast, nodeId);
+    if (!node) {
+      this.highlightRect = undefined;
+      return;
+    }
+
+    const bounds = this.getNodeVisualBounds(node);
+    if (!bounds) {
+      this.highlightRect = undefined;
+      return;
+    }
+
+    const canvasRect = this.treeCanvasElement.getBoundingClientRect();
+    const paddingX = 4;
+    const paddingY = 4;
+
+    this.highlightRect = {
+      left: bounds.left - canvasRect.left - paddingX,
+      top: bounds.top - canvasRect.top - paddingY,
+      width: bounds.right - bounds.left + paddingX * 2,
+      height: bounds.bottom - bounds.top + paddingY * 2,
     };
   }
 
-  private static _prettify(value: string) {
-    switch (value) {
-      case '*':
-        return "·"
-      case '-':
-        return "−"; // math minus
-      default:
-        return value;
-    }
+  private renderPath(edge: TreeEdge): string {
+    const delta = (edge.toY - edge.fromY) * this.tension;
+    const hx1 = edge.fromX;
+    const hy1 = edge.fromY + delta;
+    const hx2 = edge.toX;
+    const hy2 = edge.toY - delta;
+
+    return `M ${edge.fromX} ${edge.fromY} C ${hx1} ${hy1} ${hx2} ${hy2} ${edge.toX} ${edge.toY}`;
   }
-}
-
-export class KmapTermTreeEdge extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-      stroke: var(--kmap-term-tree-edge-color, #fbc02d);
-      position: relative;
-    }
-  `;
-
-  @property({type: Number}) tension: number = .5;
-  @property({type: Array}) edges: Edge[] = [];
 
   render() {
-    const parent = this.offsetParent as HTMLElement;
-    //language=SVG
-    return this.edges === undefined ? '' : svg`
-      <svg style="position:absolute;left:0px;top:0px" width="${parent.clientWidth}" height="${parent.clientHeight}">
-      ${this.edges.map(edge => svg`
-        <path d="${this._path(edge)}" fill="none" stroke-width="2" stroke-opacity=".9"/>
-      `)}
-      </svg>
+    const activeNode =
+      this.flatNodes.find(n => n.id === this.activeNodeId) || this.ast;
+    const isRoot = activeNode?.id === this.ast?.id;
+
+    return html`
+      <div class="container">
+        <!-- Canvas area with formula, edges, and operator nodes sharing the same coordinate space -->
+        <div class="tree-canvas" style="height: ${this.treeHeight}px">
+          ${this.highlightRect
+            ? html`
+                <div
+                  class="highlight-overlay"
+                  style="left: ${this.highlightRect.left}px; top: ${this
+                    .highlightRect.top}px; width: ${this.highlightRect
+                    .width}px; height: ${this.highlightRect.height}px;"
+                ></div>
+              `
+            : ''}
+
+          <div class="formula-wrapper">
+            <div id="formula"></div>
+          </div>
+
+          ${this.error
+            ? html`<div class="error-msg">${this.error}</div>`
+            : html`
+                <svg class="edges-svg">
+                  ${this.edges.map(
+                    edge => svg`
+                      <path
+                        class="edge-path ${
+                          this.activeSubtreeIds.has(edge.fromNodeId) &&
+                          this.activeSubtreeIds.has(edge.toNodeId)
+                            ? 'highlighted'
+                            : ''
+                        }"
+                        d="${this.renderPath(edge)}"
+                      />
+                    `
+                  )}
+                </svg>
+
+                ${this.flatNodes.map(
+                  node => html`
+                    <div
+                      class="tree-node ${this.activeNodeId === node.id
+                        ? 'active'
+                        : ''}"
+                      style="left: ${node.x}px; top: ${node.y}px;"
+                      @mouseenter=${() => this.onNodeHover(node, true)}
+                      @mouseleave=${() => this.onNodeHover(node, false)}
+                      @click=${() => this.setActiveNode(node)}
+                    >
+                      <div class="node-badge" title="${node.label}">
+                        ${node.symbol}
+                      </div>
+                      ${this.showLabels
+                        ? html`<span class="node-label">${node.label}</span>`
+                        : ''}
+                    </div>
+                  `
+                )}
+              `}
+        </div>
+
+        <!-- Didactic info box -->
+        ${this.showDetails && activeNode
+          ? html`
+              <div class="info-bar">
+                <span>${isRoot ? 'Hauptrechenart:' : 'Teilterm:'}</span>
+                <span class="info-badge">${activeNode.label}</span>
+                <span style="color: #64748b">
+                  ${activeNode.children.length === 2
+                    ? `(verknüpft 2 Teilterme mit ${activeNode.symbol})`
+                    : activeNode.isUnary
+                    ? `(wirkt auf ${
+                        activeNode.children[0].label || 'Ausdruck'
+                      })`
+                    : ''}
+                </span>
+              </div>
+            `
+          : ''}
+
+        <div hidden>
+          <slot @slotchange=${this.updateSlotted}></slot>
+        </div>
+      </div>
     `;
   }
-
-  _path(edge: Edge) {
-    let fromx = edge.from.x + edge.from.width / 2;
-    let fromy = edge.from.y + edge.from.height / 2;
-    let tox = edge.to.x + edge.to.width / 2;
-    let toy = edge.to.y + edge.to.height / 2;
-
-    var delta = (toy-fromy) * this.tension;
-    var hx1 = fromx;
-    var hy1 = fromy + delta;
-    var hx2 = tox;
-    var hy2 = toy - delta;
-    return "M "  + fromx + " " + fromy +
-      " C " + hx1 + " " + hy1
-      + " "  + hx2 + " " + hy2
-      + " " + tox + " " + toy;
-  }
-
 }
-window.customElements.define('kmap-term-tree-edges', KmapTermTreeEdge);
