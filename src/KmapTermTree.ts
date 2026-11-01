@@ -21,6 +21,8 @@ export class KmapTermTree extends LitElement {
         color: var(--kmap-term-tree-text-color, #1f2937);
         user-select: none;
         width: 100%;
+        min-width: var(--kmap-term-tree-min-width, 300px);
+        box-sizing: border-box;
       }
 
       .container {
@@ -29,6 +31,7 @@ export class KmapTermTree extends LitElement {
         flex-direction: column;
         align-items: center;
         width: 100%;
+        min-width: 0;
         box-sizing: border-box;
       }
 
@@ -164,6 +167,11 @@ export class KmapTermTree extends LitElement {
         font-size: 0.88rem;
         display: flex;
         align-items: center;
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+        max-width: 100%;
+        box-sizing: border-box;
         gap: 8px;
         color: #334155;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -704,8 +712,8 @@ export class KmapTermTree extends LitElement {
                 <span style="color: #64748b">
                   ${activeNode.children.length === 2
             ? `(verknüpft 2 Teilterme)`
-            : activeNode.isUnary
-              ? `(wirkt auf ${activeNode.children[0].label || 'Ausdruck'
+            : activeNode.isUnary || activeNode.type === 'function' || activeNode.children.length === 1
+              ? `(wirkt auf ${activeNode.children[0]?.label || 'Ausdruck'
               })`
               : ''}
                 </span>

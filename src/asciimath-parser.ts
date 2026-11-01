@@ -316,6 +316,7 @@ class PrattParser {
         mathJson: [fnName, arg.mathJson],
         children: [arg],
         depth: 0,
+        isUnary: true,
       };
     }
 

@@ -74,5 +74,31 @@ describe('KmapTermTree', () => {
     // Both should compute substantially the same local canvas left coordinate (within 2px)
     expect(Math.abs(scaledLeft - normalLeft)).to.be.below(2);
   });
+
+  it('correctly sets active state and unary info bar text when hovering function node like sin', async () => {
+    const el = await fixture<KmapTermTree>(
+      html`<kmap-term-tree term="2a + sin(3b)" showDetails></kmap-term-tree>`
+    );
+    await el.updateComplete;
+
+    const nodes = Array.from(
+      el.shadowRoot!.querySelectorAll('.tree-node')
+    ) as HTMLElement[];
+    const sinNode = nodes.find(n => n.textContent?.includes('sin'));
+    expect(sinNode).to.exist;
+
+    sinNode!.dispatchEvent(new MouseEvent('mouseenter'));
+    await el.updateComplete;
+
+    const infoBar = el.shadowRoot!.querySelector('.info-bar');
+    expect(infoBar).to.exist;
+    expect(infoBar!.textContent).to.include('Sinus');
+    expect(infoBar!.textContent).to.include('wirkt auf Produkt');
+
+    sinNode!.dispatchEvent(new MouseEvent('mouseleave'));
+    await el.updateComplete;
+
+    expect(infoBar!.textContent).to.include('Summe');
+  });
 });
 
