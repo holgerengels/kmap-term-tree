@@ -35,7 +35,7 @@ export const GERMAN_LABELS: Record<string, string> = {
   Multiply: 'Produkt',
   Divide: 'Quotient',
   Power: 'Potenz',
-  Negate: 'Gegenzahl (Negation)',
+  Negate: 'Negation',
   Sqrt: 'Quadratwurzel',
   Sin: 'Sinus',
   Cos: 'Kosinus',

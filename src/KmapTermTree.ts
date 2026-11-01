@@ -78,15 +78,15 @@ export class KmapTermTree extends LitElement {
       .edge-path {
         fill: none;
         stroke: var(--kmap-term-tree-edge-color, #f59e0b);
-        stroke-width: 2.2;
+        stroke-width: 2;
         stroke-linecap: round;
-        opacity: 0.85;
+        opacity: 0.80;
         transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
       }
 
       .edge-path.highlighted {
         stroke: var(--kmap-term-tree-highlight-edge-color, #d97706);
-        stroke-width: 3.2;
+        stroke-width: 2.5;
         opacity: 1;
       }
 
@@ -110,11 +110,11 @@ export class KmapTermTree extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: 27px;
+        height: 27px;
         border-radius: 50%;
         background: var(--kmap-term-tree-background-color, #ffffff);
-        border: 2px solid var(--kmap-term-tree-border-color, #0284c7);
+        border: 1px solid var(--kmap-term-tree-border-color, #0284c7);
         color: var(--kmap-term-tree-node-text-color, #0284c7);
         font-weight: 700;
         font-size: 1rem;
@@ -283,7 +283,7 @@ export class KmapTermTree extends LitElement {
     }
 
     if (animations.length > 0) {
-      Promise.all(animations.map(a => a.finished.catch(() => {}))).then(() => {
+      Promise.all(animations.map(a => a.finished.catch(() => { }))).then(() => {
         if (this.isConnected) {
           this.recalculateLayout();
         }
@@ -640,45 +640,44 @@ export class KmapTermTree extends LitElement {
         <!-- Canvas area with formula, edges, and operator nodes sharing the same coordinate space -->
         <div class="tree-canvas" style="height: ${this.treeHeight}px">
           ${this.highlightRect
-            ? html`
+        ? html`
                 <div
                   class="highlight-overlay"
                   style="left: ${this.highlightRect.left}px; top: ${this
-                    .highlightRect.top}px; width: ${this.highlightRect
-                    .width}px; height: ${this.highlightRect.height}px;"
+            .highlightRect.top}px; width: ${this.highlightRect
+              .width}px; height: ${this.highlightRect.height}px;"
                 ></div>
               `
-            : ''}
+        : ''}
 
           <div class="formula-wrapper">
             <div id="formula"></div>
           </div>
 
           ${this.error
-            ? html`<div class="error-msg">${this.error}</div>`
-            : html`
+        ? html`<div class="error-msg">${this.error}</div>`
+        : html`
                 <svg class="edges-svg">
                   ${this.edges.map(
-                    edge => svg`
+          edge => svg`
                       <path
-                        class="edge-path ${
-                          this.activeSubtreeIds.has(edge.fromNodeId) &&
-                          this.activeSubtreeIds.has(edge.toNodeId)
-                            ? 'highlighted'
-                            : ''
-                        }"
+                        class="edge-path ${this.activeSubtreeIds.has(edge.fromNodeId) &&
+              this.activeSubtreeIds.has(edge.toNodeId)
+              ? 'highlighted'
+              : ''
+            }"
                         d="${this.renderPath(edge)}"
                       />
                     `
-                  )}
+        )}
                 </svg>
 
                 ${this.flatNodes.map(
-                  node => html`
+          node => html`
                     <div
                       class="tree-node ${this.activeNodeId === node.id
-                        ? 'active'
-                        : ''}"
+              ? 'active'
+              : ''}"
                       style="left: ${node.x}px; top: ${node.y}px;"
                       @mouseenter=${() => this.onNodeHover(node, true)}
                       @mouseleave=${() => this.onNodeHover(node, false)}
@@ -688,32 +687,31 @@ export class KmapTermTree extends LitElement {
                         ${node.symbol}
                       </div>
                       ${this.showLabels
-                        ? html`<span class="node-label">${node.label}</span>`
-                        : ''}
+              ? html`<span class="node-label">${node.label}</span>`
+              : ''}
                     </div>
                   `
-                )}
+        )}
               `}
         </div>
 
         <!-- Didactic info box -->
         ${this.showDetails && activeNode
-          ? html`
+        ? html`
               <div class="info-bar">
                 <span>${isRoot ? 'Hauptrechenart:' : 'Teilterm:'}</span>
                 <span class="info-badge">${activeNode.label}</span>
                 <span style="color: #64748b">
                   ${activeNode.children.length === 2
-                    ? `(verknüpft 2 Teilterme mit ${activeNode.symbol})`
-                    : activeNode.isUnary
-                    ? `(wirkt auf ${
-                        activeNode.children[0].label || 'Ausdruck'
-                      })`
-                    : ''}
+            ? `(verknüpft 2 Teilterme)`
+            : activeNode.isUnary
+              ? `(wirkt auf ${activeNode.children[0].label || 'Ausdruck'
+              })`
+              : ''}
                 </span>
               </div>
             `
-          : ''}
+        : ''}
 
         <div hidden>
           <slot @slotchange=${this.updateSlotted}></slot>
