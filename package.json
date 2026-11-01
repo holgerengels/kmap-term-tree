@@ -1,6 +1,6 @@
 {
   "name": "kmap-term-tree",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Renders a tree from a mathematical term",
   "license": "MIT",
   "author": "Holger Engels",
